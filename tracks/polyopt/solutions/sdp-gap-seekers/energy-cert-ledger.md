@@ -86,6 +86,19 @@ The **#88 gap-side** has separate local results (1D Ising Δ≤0.258 @ d=2,
 
 ## Status
 
-Ledger opened 2026-07-27. No certified writeup-ready number yet (row 1 pending
-metadata). This track is intentionally decoupled from the gap-SDP foundation
-work on `feature/legacy-affine-inventory` / `feature/structured-basis-assembly`.
+**SCNet operational as of 2026-07-27.** Root cause of the QMBCertify load
+failure was a **missing `~/.julia/artifacts/`** tree on SCNet (the depot copy
+had included `packages/`+`registries/` but not `artifacts/`). Fixed with a
+**targeted 36 MiB copy** of just OpenBLAS32 + FLINT artifacts
+(`0f2b4ed…` + `d6b85930…`; GMP/MPFR ship bundled with Julia) — NOT the full
+3.5 GB. Verify job confirmed `QMBCertify 0.3.5` loads and `GSB` is defined
+(`resort` injected via `@eval`). The `resort` injection remains a runtime `@eval`
+in every job script, not a committed patch.
+
+**Experiments running** on SCNet (job `22963122`, `sdp_final.sh`): L=4 J1-J2
+sweep g=0/0.3/0.5/0.7 (rdm=8, d=4), L=6 Heisenberg, L=8 Heisenberg (rdm=0, d=4,
+paper ref −0.676370 — the headline new result the laptop couldn't reach). Results
+will be appended to the table above when the job completes.
+
+This track is intentionally decoupled from the gap-SDP foundation work on
+`feature/legacy-affine-inventory` / `feature/structured-basis-assembly`.
