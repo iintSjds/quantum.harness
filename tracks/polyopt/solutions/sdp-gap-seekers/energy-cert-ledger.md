@@ -34,30 +34,46 @@ A short, certified result table + writeup:
 
 Columns: model | (L, d, rdm/pso) | E₀/N certified lower bound | reference | gap | solver / version | runtime | status
 
-| # | model | config | certified E₀/N | reference | gap | solver | runtime | status |
+| # | model | config | certified E₀/N | reference | gap% | solver | runtime | status |
 |---|---|---|---|---|---|---|---|---|
-| 1 | 2D square J1-J2, g=0 | L=4, d=? (PBC?) | ≥ −0.7030 | −0.7018 (reported) | 0.17% | Mosek 11 (reported) | ? | **metadata pending** |
-| 2 | Shastry–Sutherland, g=0 | TBD | — | −0.375 | — | — | — | planned (energy anchor) |
-| 3 | Shastry–Sutherland, g≈0.8 | TBD | — | contested | — | — | — | planned (the key result) |
-| 4 | 2D square J1-J2, g=0.5 | L=4, d=? | — | TBD | — | — | — | planned |
-| 5 | 2D square J1-J2, g=0.535 | L=4, d=? | — | TBD | — | — | — | planned |
+| 1 | 2D square Heisenberg, g=0 | L=4, d=4, rdm=0 | ≥ −0.7030 | −0.7018 (ED) | 0.18% | Mosek 11.2.2 (local) | ? | **local-validated** |
+| 2 | 2D square Heisenberg, g=0 | L=4, d=4, rdm=8 | ≥ −0.7025 | −0.7018 (ED) | 0.10% | Mosek 11.2.2 (local) | ? | **local-validated** |
+| 3 | 2D square Heisenberg, g=0 | L=6, d=4, rdm=8 | ≥ −0.6836 | −0.6789 (ED) | 0.7% | Mosek 11.2.2 (local) | ? | **local-validated** |
+| 4 | 2D square J1-J2, g=0.3 | L=4, d=4, rdm=8 | ≥ −0.5826 | −0.5559 | 4.8% | Mosek 11.2.2 (local) | ? | **local-validated** |
+| 5 | 2D square J1-J2, g=0.5 | L=4, d=4, rdm=8 | ≥ −0.5173 | −0.4976 | 4.0% | Mosek 11.2.2 (local) | ? | **local-validated** |
+| 6 | Shastry–Sutherland, g=0 | TBD | — | −0.375 | — | — | — | planned (energy anchor) |
+| 7 | Shastry–Sutherland, g≈0.8 | TBD | — | contested | — | — | — | planned (key result) |
+| 8 | 2D square Heisenberg, g=0 | L=8, d=4 | — | −0.676370 (paper) | — | — | — | planned (SCNet) |
 
-**Row 1 was produced by the other session.** I need from that session, before
-citing it: the exact (L, d, rdm, pso) values; whether L=4 is PBC or open; the
-ED reference source (own ED run? literature?); the SpectralGap/QMBCertify +
-Mosek versions; the runtime; and the solver status (OPTIMAL vs other). Until
-then it is a placeholder.
+**Rows 1–5 are local-laptop runs** (the other session's `GSB(..., lattice="square",
+rdm=8, d=4)` calls, validated against ED references). Source: the other session's
+handoff. **Finite-size sanity check passes**: the g=0 Heisenberg sequence
+L=4 (−0.7030) → L=6 (−0.6836) → ∞ (−0.6694 literature) is monotone approaching
+the thermodynamic limit from below, as it must for a lower bound. rdm=8 tightens
+the L=4 bound by ~0.08 ppt vs rdm=0 (extra reduced-density-matrix positivity).
+
+**Caveats on rows 1–5** (before citing in a writeup):
+- runtime not recorded — recover from the other session's logs if needed;
+- ED reference provenance (own ED? literature?) to confirm for each (L, g);
+- the local laptop is memory-constrained (one prior WSL OOM-kill), so these were
+  near the feasible edge — SCNet is needed to push L=8 and higher rdm.
+
+The **#88 gap-side** has separate local results (1D Ising Δ≤0.258 @ d=2,
+Δ≤0.152 @ d=3 vs exact 1.0) — reported under the gap track, not here.
 
 ## Open data needs (blocking writeup)
 
-1. **Row-1 metadata** (above) — request from the other session / SCNet logs.
+1. **Rows 1–5 metadata** — filled from the handoff; still missing **runtime** and
+   **ED-reference provenance** for each (L, g). Recover from the other session's
+   local logs or re-run with metadata capture on SCNet.
 2. **2D square finite-size reference** — confirm the ED values for the exact
    (L, boundary) used, or run a small ED cross-check (the harness `/method-ed`
    skill).
-3. **QMBCertify 2D bug status** — the other session reported fixing the
-   `resort`-undefined bug in `eigen_circmat` for the 2D square path; confirm the
-   patch is captured (commit) and reproducible on SCNet before relying on rows
-   4–5.
+3. **QMBCertify `resort` fix is an @eval injection, not a committed patch** — it
+   must be present in every job script (`@eval QMBCertify function resort(...)`),
+   not assumed. On SCNet the deeper blocker is the **missing `~/.julia/artifacts/`**
+   tree (QMBCertify's deps fail to load without it) — tracked in the SCNet
+   handoff; a subagent is on it.
 
 ## Next compute steps (all on SCNet — laptop-compute constraint)
 
