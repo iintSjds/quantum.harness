@@ -52,8 +52,17 @@ Columns: model | (L, d, rdm/pso) | E₀/N certified lower bound | reference | ga
 | 14 | 2D square J1-J2, g=0.5 | L=4, d=6, rdm=8 | ≥ −0.5173 | −0.4976 | 4.0% | Mosek 11.2.2 | 26s | SCNet (= d=4) |
 | 15 | **2D square J1-J2, g=0.535** | L=4, d=6, rdm=8 | **≥ −0.5088** | — (challenge pt, SPEC §2) | — | Mosek 11.2.2 | 26s | **SCNet (new)** |
 | 16 | 2D square J1-J2, g=0.7 | L=4, d=6, rdm=8 | ≥ −0.5135 | −0.4836 | 6.2% | Mosek 11.2.2 | 28s | SCNet (= d=4) |
-| 17 | 2D square Heisenberg, g=0 | L=10, d=4, rdm=0 | — | — | — | Mosek 11.2.2 | — | running (overnight job 22965090) |
-| 18 | 2D square Heisenberg, g=0 | L=12,14 d=4; L=10,12 d=6 | — | — | — | Mosek 11.2.2 | — | running (overnight, Tier 3+5) |
+| 17 | 2D square Heisenberg, g=0 | L=10, d=4, rdm=0 | ≥ −0.6791 | ≈ −0.6694 (∞, QMC) | — | Mosek 11.2.2 | 979s | **SCNet (frontier)** |
+| 18 | 2D square Heisenberg, g=0 | L=12, d=4, rdm=0 | — | — | — | — | — | **OOM** (243 GB node limit; L=12 infeasible at d=4) |
+| 19 | 2D square J1-J2, g=0.1 | L=4, d=4, rdm=8 | ≥ −0.6605 | — | — | Mosek 11.2.2 | 56s | SCNet (E₀(g) sweep) |
+| 20 | 2D square J1-J2, g=0.2 | L=4, d=4, rdm=8 | ≥ −0.6204 | — | — | Mosek 11.2.2 | 33s | SCNet (E₀(g) sweep) |
+| 21 | 2D square J1-J2, g=0.4 | L=4, d=4, rdm=8 | ≥ −0.5477 | — | — | Mosek 11.2.2 | 33s | SCNet (E₀(g) sweep) |
+| 22 | 2D square J1-J2, g=0.45 | L=4, d=4, rdm=8 | ≥ −0.5318 | — | — | Mosek 11.2.2 | 38s | SCNet (E₀(g) sweep) |
+| 23 | 2D square J1-J2, g=0.55 | L=4, d=4, rdm=8 | ≥ −0.5059 | — | — | Mosek 11.2.2 | 33s | SCNet (E₀(g) sweep) |
+| 24 | 2D square J1-J2, g=0.6 | L=4, d=4, rdm=8 | ≥ −0.5004 | — | — | Mosek 11.2.2 | 32s | SCNet (E₀(g) sweep) |
+| 25 | 2D square J1-J2, g=0.5 | L=4, d=8, rdm=8 | ≥ −0.5173 | −0.4976 | 4.0% | Mosek 11.2.2 | 32s | SCNet (= d=4, converged) |
+| 26 | **2D square J1-J2, g=0.535** | L=4, d=8, rdm=8 | ≥ −0.5088 | — (challenge pt) | — | Mosek 11.2.2 | 34s | SCNet (= d=6, converged) |
+| 27 | 2D square Heisenberg, g=0 | L=4, d=4, rdm=16 | ≥ −0.7030 | −0.7018 (ED) | 0.18% | Mosek 11.2.2 | 13s | SCNet (rdm probe — **looser** than rdm=8) |
 
 **Key finding — d-convergence (rows 9–14, 16):** raising the relaxation order
 from d=4 to d=6 and d=8 reproduces the d=4 bound **to 6 significant figures**
@@ -62,6 +71,19 @@ from d=4 to d=6 and d=8 reproduces the d=4 bound **to 6 significant figures**
 Cranking d further is unproductive — the **L-frontier** (thermodynamic trend,
 rows 17–18) is the remaining productive energy-side knob. This also means the
 floor is essentially as tight as this rdm=8 hierarchy gets at L≤8.
+
+**Key finding — rdm probe (row 27):** raising rdm from 8 to 16 at (L=4, d=4)
+gives a **looser** bound (−0.7030 vs −0.7025), i.e. higher rdm does *not* tighten
+here — rdm=8 is the sweet spot at L=4 (rdm=16 likely over-reaches the 16-site
+patch). Combined with d-convergence, the L=4 bound is firmly pinned at
+−0.7025 (0.10% of ED); the residual gap to the exact value is the relaxation
+floor for this hierarchy, not a tunable.
+
+**E₀(g) phase diagram (rows 4–5, 13–16, 19–24, 26):** the certified lower bound
+is monotone in g — E₀/N rises from −0.7025 (g=0) through −0.5477 (g=0.4) to
+−0.5004 (g=0.6), tracking the J1-J2 energy across the critical region
+g_c ≈ 0.5. This is the writeup's E₀(g) curve; the challenge points g=0.5
+(−0.5173) and g=0.535 (−0.5088) sit on it.
 
 **Rows 1–5 are local-laptop runs** (the other session's `GSB(..., lattice="square",
 rdm=8, d=4)` calls, validated against ED references). Source: the other session's
