@@ -1,6 +1,7 @@
 # Energy-cert floor — run ledger
 
-> The guaranteed-deliverable track: **certified ground-state energy bounds** for
+> The guaranteed-deliverable track: **numerical SDP ground-state energy lower
+> bounds** (Mosek objective values from `QMBCertify.GSB`) for frustrated spin-1/2
 > frustrated spin-1/2 models (2D square J1-J2 + Shastry–Sutherland), via the same
 > QMBCertify/NCTSSoS stack the gap-SDP (#88) uses.
 >
@@ -32,9 +33,14 @@ A short, certified result table + writeup:
 
 ## Run ledger
 
-Columns: model | (L, d, rdm/pso) | E₀/N certified lower bound | reference | gap | solver / version | runtime | status
+Columns: model | (L, d, rdm/pso) | E₀/N numerical SDP lower bound | reference | gap | solver / version | runtime | status
 
-| # | model | config | certified E₀/N | reference | gap% | solver | runtime | status |
+> ⚠️ Wording (per advisor): values are **numerical SDP lower bounds from Mosek**,
+> not "formally certified" — the scripts record only `opt` + runtime, discarding
+> the returned status/residual and relying on a runtime `@eval` patch. Raw result
+> files live on SCNet, not in the branch.
+
+| # | model | config | numerical E₀/N ≥ | reference | gap% | solver | runtime | status |
 |---|---|---|---|---|---|---|---|---|
 | 1 | 2D square Heisenberg, g=0 | L=4, d=4, rdm=0 | ≥ −0.7030 | −0.7018 (ED) | 0.18% | Mosek 11.2.2 (local) | — | local-validated |
 | 2 | 2D square Heisenberg, g=0 | L=4, d=4, rdm=8 | ≥ −0.7025 | −0.7018 (ED) | 0.10% | Mosek 11.2.2 | 47s | **local + SCNet** |
@@ -60,24 +66,26 @@ Columns: model | (L, d, rdm/pso) | E₀/N certified lower bound | reference | ga
 | 22 | 2D square J1-J2, g=0.45 | L=4, d=4, rdm=8 | ≥ −0.5318 | — | — | Mosek 11.2.2 | 38s | SCNet (E₀(g) sweep) |
 | 23 | 2D square J1-J2, g=0.55 | L=4, d=4, rdm=8 | ≥ −0.5059 | — | — | Mosek 11.2.2 | 33s | SCNet (E₀(g) sweep) |
 | 24 | 2D square J1-J2, g=0.6 | L=4, d=4, rdm=8 | ≥ −0.5004 | — | — | Mosek 11.2.2 | 32s | SCNet (E₀(g) sweep) |
-| 25 | 2D square J1-J2, g=0.5 | L=4, d=8, rdm=8 | ≥ −0.5173 | −0.4976 | 4.0% | Mosek 11.2.2 | 32s | SCNet (= d=4, converged) |
-| 26 | **2D square J1-J2, g=0.535** | L=4, d=8, rdm=8 | ≥ −0.5088 | — (challenge pt) | — | Mosek 11.2.2 | 34s | SCNet (= d=6, converged) |
-| 27 | 2D square Heisenberg, g=0 | L=4, d=4, rdm=16 | ≥ −0.7030 | −0.7018 (ED) | 0.18% | Mosek 11.2.2 | 13s | SCNet (rdm probe — **looser** than rdm=8) |
+| 25 | 2D square J1-J2, g=0.5 | L=4, d=8, rdm=8 | ≥ −0.5173 | −0.4976 | 4.0% | Mosek 11.2.2 | 32s | SCNet (= d=4; **basis-impl cap, NOT convergence**) |
+| 26 | **2D square J1-J2, g=0.535** | L=4, d=8, rdm=8 | ≥ −0.5088 | — (challenge pt) | — | Mosek 11.2.2 | 34s | SCNet (= d=6; same basis-impl cap) |
+| 27 | 2D square Heisenberg, g=0 | L=4, d=4, rdm=16 | ≥ −0.7030 | −0.7018 (ED) | 0.18% | Mosek 11.2.2 | 13s | **INVALID / no-op** — QMBCertify `GSB` supports only rdm∈{8,9,10}; rdm=16 prints "Adding rdm>10 is not supported!" and adds no RDM constraint, so this row equals the no-RDM run, not an rdm=16 probe |
 
-**Key finding — d-convergence (rows 9–14, 16):** raising the relaxation order
-from d=4 to d=6 and d=8 reproduces the d=4 bound **to 6 significant figures**
-(e.g. L=4 g=0: −0.702488373049998 at d=4 = d=6 = d=8). The SDP relaxation is
-**saturated in d at small L**; bound quality is set by **rdm and L**, not d.
-Cranking d further is unproductive — the **L-frontier** (thermodynamic trend,
-rows 17–18) is the remaining productive energy-side knob. This also means the
-floor is essentially as tight as this rdm=8 hierarchy gets at L≤8.
+**⚠️ d-"convergence" is RETRACTED (advisor P0).** The equality d=4 = d=6 = d=8 is
+an **implementation artifact**, not mathematical convergence: QMBCertify's
+`get_basis` (`src/basic_function.jl`) has branches only for `d>1`, `d>2`, `d>3`
+— it adds no new basis entries for d≥4, and `bound_gsp.jl` does not use `d` to
+generate a higher hierarchy level. So d=6/d=8 build the **same SDP** as d=4.
+Equality of the bound is guaranteed by code. The earlier "saturated in d /
+bound set by rdm and L" conclusion is **not supported**; we have not actually
+probed the mathematical hierarchy above its implemented degree cap. Productive
+tightening needs a genuinely larger nested basis, a larger window, or additional
+positivity/localizing blocks.
 
-**Key finding — rdm probe (row 27):** raising rdm from 8 to 16 at (L=4, d=4)
-gives a **looser** bound (−0.7030 vs −0.7025), i.e. higher rdm does *not* tighten
-here — rdm=8 is the sweet spot at L=4 (rdm=16 likely over-reaches the 16-site
-patch). Combined with d-convergence, the L=4 bound is firmly pinned at
-−0.7025 (0.10% of ED); the residual gap to the exact value is the relaxation
-floor for this hierarchy, not a tunable.
+**⚠️ rdm=16 probe is INVALID (advisor P0).** QMBCertify recognizes only
+rdm∈{8,9,10}; rdm=16 silently receives no RDM PSD constraint (after a warning).
+The row-27 value matching the weaker no-RDM bound is therefore expected. The
+"rdm=8 is the sweet spot / optimal" conclusion is **retracted**. If the energy
+track is retained, test only supported rdm=9/10 (after estimating memory cost).
 
 **E₀(g) phase diagram (rows 4–5, 13–16, 19–24, 26):** the certified lower bound
 is monotone in g — E₀/N rises from −0.7025 (g=0) through −0.5477 (g=0.4) to
@@ -141,9 +149,9 @@ runtime `@eval` in every job script, not a committed patch.
 filled the **headline row 8**: L=8 Heisenberg E₀/N ≥ −0.6805 vs paper −0.676370
 (0.61% gap) — the result the laptop could not reach.
 
-**Overnight job `22965090` RUNNING** (`sdp_overnight.sh`, 10 h wall):
-d-convergence sweep (rows 9–14, 16 — confirms d is saturated at small L), the
-**challenge point g=0.535 → E₀/N ≥ −0.5088** (row 15, new), and the L=10/12/14
+**Overnight job `22965090` DONE** (`sdp_overnight.sh`): the d=4/d=6/d=8 sweep
+(rows 9–14, 16 — which **retracts** as convergence; it's a basis-impl cap), the
+**challenge point g=0.535 → E₀/N ≥ −0.5088** (row 15), and the L=10/12/14
 Heisenberg frontier (rows 17–18, running). Results append incrementally to
 `sdp_overnight.results`; each case is try/caught so a wall-kill loses at most
 one cell. Bug found+fixed during the run (Rational vs Float `coe` broke the g=0
