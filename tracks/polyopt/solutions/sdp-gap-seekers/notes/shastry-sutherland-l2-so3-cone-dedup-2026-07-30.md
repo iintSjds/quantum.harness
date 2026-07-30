@@ -21,15 +21,19 @@
 
 ## Current decision gate
 
-SCNet job `118196521`, immutable source `6dd911f`, is the full L=2
-coefficient audit. It retains every cone, reconstructs 940,050 mapped triangle
-entries, and checks exact `T = D P R P^T D` congruence after SO(3) projection.
-The exceptional scale is inferred from coefficient algebra; the Euclidean
-row-norm ratio is diagnostic and does not authorize the scale.
+SCNet job `118196521`, immutable source `6dd911f`, completed the full L=2
+coefficient audit in 57:50 with 31,578,308 KiB peak RSS. It retained every
+cone, reconstructed 940,050 mapped triangle entries, and checked exact
+`T = D P R P^T D` congruence after SO(3) projection. The exceptional scale
+was inferred from coefficient algebra; the Euclidean row-norm ratio was
+diagnostic and did not authorize the scale.
 
-Acceptance requires all 12 target blocks to have zero final unmatched and
-zero opposite entries. Only then may the separate build remove the three
-nontrivial-character `l=2` copies in each family/parity group.
+All 12 blocks passed: 916,725 entries were directly equal and the exact
+exceptional permutation resolved the remaining 23,325. Final unmatched and
+opposite counts are both zero. The immutable runmeta SHA-256 is
+`5dca02a5be9d0e368f8edaa43e7a448b78e72f9d3aecf38a7962ba42763defa7`.
+This authorizes the separate build to remove the three nontrivial-character
+`l=2` copies in each family/parity group.
 
 ## Conditional reduced inventory
 
@@ -51,6 +55,8 @@ inventory.
 - Commit `b729697` adds strict build-only and solve runners. Both repeat the
   full stabilizer and SO(3) coefficient gates. The solve also requires the
   coefficient hash emitted by the separate build.
+- Strict deduplicated build-only job `118199609`, source commit `c817334`, was
+  submitted after the coefficient audit passed. It invokes no optimizer.
 - The earlier L=3 structural experiment used an invalid shortcut from
   norm-ratio `1/2` to coefficient scale `1/2`. Commit `e253c34` reverted that
   shortcut. Its L=3 size output is structural prediction only and cannot
