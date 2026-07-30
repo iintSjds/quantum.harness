@@ -99,10 +99,28 @@ measurement = @timed build_shastry_full_state_spin_isotypic_mosek_primal(
     isotypic;
     threads=Threads.nthreads(),
     log_level=0,
+    solve_form=:primal,
+    order_method=:try_graphpar,
+    basis_identification=:never,
     progress_callback=native_progress,
     fingerprint_coefficients=true,
 )
 native = measurement.value
+Mosek.getintparam(
+    native.task,
+    Mosek.MSK_IPAR_INTPNT_SOLVE_FORM,
+) == Mosek.MSK_SOLVE_PRIMAL ||
+    error("native primal did not retain the requested solve form")
+Mosek.getintparam(
+    native.task,
+    Mosek.MSK_IPAR_INTPNT_ORDER_METHOD,
+) == Mosek.MSK_ORDER_METHOD_TRY_GRAPHPAR ||
+    error("native primal did not retain the requested ordering")
+Mosek.getintparam(
+    native.task,
+    Mosek.MSK_IPAR_INTPNT_BASIS,
+) == Mosek.MSK_BI_NEVER ||
+    error("native primal did not disable basis identification")
 native.coefficient_map_sha256 == EXPECTED_COEFFICIENT_SHA256 ||
     error("native coefficient fingerprint differs from the exact regression")
 length(native.moment_variables) == 7_231 ||
