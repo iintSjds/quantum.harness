@@ -1,141 +1,89 @@
-# Shastry–Sutherland compute status — 2026-07-30
+# Shastry--Sutherland bulk-gap SDP: progress summary
 
-This note separates verified artifacts from scheduler state and failed routes.
-The target setup in this batch is the unrestricted infinite-system
-Shastry–Sutherland local-consistency relaxation
+## Headline
 
-`H = Σ_dimer S_i·S_j + g Σ_square-NN S_i·S_j`
+For the infinite Shastry--Sutherland model at `g = 4/5`, the complete
+`L=1,d=2` KMS-ground-state relaxation is feasible throughout the tested
+gamma range. The correct conclusion is that this hierarchy level is too weak
+to constrain the physical bulk gap, not that the model has a very large gap.
 
-at `g = 4/5`, with `d = 2`. The active feasibility tests use `γ = 2`.
+The main contribution so far is the exact reduction machinery that makes
+stronger relaxations accessible. The current stretch target is the first
+decision-relevant `L=2,d=2` result.
 
-## Verified local result: L=1 native primal truth gate
+## Result at `L=1,d=2`
 
-SCNet job `118173485` completed in 8:27 with exit code zero and
-18,936,840 KiB peak RSS. It used source commit
-`568d3579c30240054b9f09a4f66fd0666974a714`.
+The relaxation remains feasible through all tested values up to `gamma=256`.
+An exact rational witness independently proves finite-level feasibility at
+`gamma=1/2`.
 
-- Native model: 7,231 scalar moment variables, 23 affine PSD blocks,
-  75,967 packed PSD rows, and 233,206 scalar coefficient terms.
-- The exact coefficient-map hash
-  `2a6753a6ea7c57fa43bd33e09339046206fae5217ac3ae47c0cf9cc3b2dc2679`
-  matches the independently assembled reference model.
-- MOSEK returned `PRIM_AND_DUAL_FEAS` / `OPTIMAL`.
-- Reconstructed maximum affine-conic and equality violations are both zero.
-- Native task construction took 28.76 s. MOSEK took 403.87 s, including
-  118.89 s factor setup and eight interior-point iterations.
-- Factorization grew from `2.23×10^8` to `3.91×10^8` nonzeros and cost an
-  estimated `2.40×10^12` flops.
+The feasible solutions approach the SDP boundary as gamma grows, consistent
+with a pseudo-moment escape direction. Continuing to scan gamma at fixed
+`L=1,d=2` therefore has little value. Accuracy must instead be improved by
+increasing the spatial window `L` or polynomial order `d`.
 
-This is a verified feasible point of the finite `L=1,d=2,γ=2` relaxation. It
-validates the native solver path, but it is not a positive bulk-gap
-certificate and is not a physical gap value.
+This is a finite-relaxation result. It is neither a measured physical gap nor
+a certified nonzero lower bound.
 
-Fetched artifacts:
+## Method contribution
 
-- `results/ss-native-primal-l1-g0p8-gamma2-scnet-118173485/runmeta.toml`
-- `results/ss-native-primal-l1-g0p8-gamma2-scnet-118173485/slurm-118173485.out`
+The original complete-state SDP is reduced through exact spatial and spin
+representation theory. Each reduction is checked coefficient by coefficient
+and preserves the unrestricted finite relaxation; it does not assume a
+symmetry-broken or symmetry-invariant physical state.
 
-## Failed local routes
+At `L=1,d=2`, this produces a compact native affine-PSD model whose independent
+assemblies agree exactly and whose numerical solution passes residual checks.
+The same reduction framework depends mainly on the patch, basis, and spin
+symmetry, so substantial parts transfer to other isotropic Heisenberg
+geometries.
 
-The old JuMP/bridge L=2 direct solve is not usable at the available memory
-scale:
+At `L=2,d=2`, three exact ingredients have now been composed:
 
-- SCNet `118171391`: `OUT_OF_MEMORY` after 2:27:56 at 105,617,508 KiB.
-- xH5 `23011251`: `OUT_OF_MEMORY` after 1:48:50 at 234,603,960 KiB.
+1. an SO(3) rank-four moment quotient;
+2. a stabilizer decomposition of the nontrivial spin sectors;
+3. coefficient-level congruence and deduplication of repeated SO(3) `l=2`
+   cones.
 
-The following are implementation smoke-test failures rather than physics
-results:
+The last step reduces the exact cone inventory from 38 to 26 PSD blocks and
+the packed cone entries by 37%, from 2,540,067 to 1,600,017, without weakening
+the relaxation.
 
-- SCNet `118172420`: incompatible first streaming/MOSEK smoke route.
-- SCNet `118172483`: on-demand coefficients requested without the structural
-  primal mode required by that route.
-- SCNet `118172519`: MosekTools direct mode does not accept the attempted
-  vector-affine PSD constraint representation.
-- SCNet `118172813`: scalar affine equality constant was not moved into its
-  equality set.
-- xH5 `23012281`: failed version of the same early streaming/MOSEK route.
+An earlier shortcut based only on row-norm ratios was rejected. The accepted
+deduplication derives the exceptional scaling from the coefficient algebra
+and closes every proposed congruence exactly.
 
-Each of these failure signatures has been superseded by the native affine-PSD
-path verified by job `118173485`.
+## Current stretch result
 
-## Active local L=3 route
+The strengthened `L=2,d=2` formulation has been built far enough to identify
+the real bottleneck: sparse interior-point factorization fill, rather than the
+formal number of stored moments alone.
 
-xH5 job `23013517` is running the native primal `L=3,d=2,γ=2` path from commit
-`568d357` on 128 CPUs with a 480 GB request. At 5:09 elapsed it had reached
-positive PSD block 7 while constructing coefficients. Peak RSS was
-56,957,224 KiB. It had not entered MOSEK optimization.
+The exact cone-deduplicated model is now in full assembly and solve. The
+production path combines the exact reductions with direct native affine-PSD
+assembly and fill-reducing primal factorization.
 
-The exact structural inventory before coefficient expansion is:
+Two outcomes would be decision-relevant:
 
-- positive basis dimension: 53,950;
-- stationarity rows before exact reduction: 8,400;
-- 20 positive PSD blocks plus 6 gap blocks;
-- 65,544,123 packed PSD entries;
-- largest PSD side: 3,675.
+- a verified infeasibility result would constrain the candidate bulk gap and
+  materially strengthen the submission;
+- a verified feasible result would show that even the larger spatial window
+  remains too weak and would direct the next step toward `L=1,d=3`.
 
-The native coefficient builder has discovered 6,987,373 distinct scalar moment
-variables. Therefore the earlier shorthand “53,950 final moments” was
-incorrect: 53,950 is the positive-basis dimension, not the final native
-moment-variable count. The active run is useful as a measured scale probe, but
-its eventual MOSEK factorization is now high risk even if coefficient
-construction completes.
+Resource failure, timeout, or a solver error would remain inconclusive.
 
-Four older SCNet L=3 preflights remain in the exact S3 isotypic cone-blocking
-stage and have produced no solver artifact:
+## Submission boundary
 
-- `118170188`, `118170649`, `118170956`, and `118171078`.
+The defensible result today is:
 
-They are obsolete implementation comparisons, not independent physics
-calculations.
+- `L=1,d=2` is demonstrably too weak for the Shastry--Sutherland bulk gap;
+- a reusable chain of exact symmetry reductions has been implemented and
+  independently checked;
+- exact `L=2,d=2` cone deduplication substantially reduces the stronger
+  problem;
+- no nonzero physical bulk-gap certificate has yet been obtained.
 
-## Remote research-agent result
-
-The remote agent's strongest verified contribution is an exact L=2 structural
-reduction, not a numerical bulk-gap result:
-
-- 343,761 moment equations;
-- an exact stabilizer split into 38 PSD blocks;
-- 2,540,067 packed entries;
-- maximum block side 490;
-- 16,110,543 scalar coefficient terms;
-- coefficient hash
-  `b4a9884636dcea65be67e60e6f2ef0dffe23812e1ab8e6bf5205f23f549874e5`.
-
-The exact cross-zero gate `118189871` checked 1,906,425 entries. Build-only job
-`118190562` reproduced the split inventory and hash.
-
-The corresponding 500 GB decision solve `118192695` reached MOSEK presolve but
-was killed during the first factorization at 509,850,832 KiB, before iteration
-zero. Earlier 114 GB, 256 GB, and 500 GB unsplit/reduced attempts failed at the
-same factorization boundary. None supplies feasibility, infeasibility, or a
-bulk-gap conclusion.
-
-The remote agent is now testing whether some equal-dimensional SO(3) `l=2`
-cones are exactly congruent and can therefore be removed without weakening the
-relaxation. It is fail-closed:
-
-- L=1 control `118194879` found 14,715 exactly matching projected entries but
-  1,107 scalar-sector mismatches.
-- Norm-corrected control `118195346` reproduced the same 1,107 mismatches,
-  disproving the diagonal row-normalization hypothesis.
-- No L=2 cone deletion is authorized by these tests.
-
-The agent then implemented an exact exceptional-sector search at commit
-`e81c463e66beef2aa02d9576c1be48ce0b545f70`. It fixes every already-proved
-ordinary row, searches only the 3-row and 6-row exceptional scalar sectors,
-and requires one complete signed-permutation/rational-scale congruence across
-ordinary–exceptional and exceptional–exceptional entries. SCNet truth-only job
-`118195948` is running this changed signature on 8 CPUs and 16 GB; it has no
-optimizer and cannot delete a cone unless the exact gate passes. The remote
-working branch is clean at status commit `63072a3`.
-
-No new credential or user decision is currently required.
-
-## Decision consequence
-
-The native path is correct at L=1, but brute-force L=3 is not presently the
-shortest route to a challenge result. The decision-relevant bottleneck is
-MOSEK factorization fill, not coefficient generation alone. Work that can
-change the outcome is exact cone reduction or a certifiable formulation whose
-factorization graph is substantially smaller; merely increasing memory has
-already failed at 500 GB for L=2.
+The submission should lead with the finite-level physics conclusion and the
+general exact-reduction machinery. The `L=2,d=2` outcome should replace the
+stretch-result paragraph only after a solver result and its certificate checks
+are complete.
