@@ -1176,6 +1176,21 @@ function spin_isotypic_main(arguments::Vector{String}=ARGS)
         )
         log_level =
             parse(Int, get(ENV, "SS_MOSEK_LOG_LEVEL", "1"))
+        solve_form = Symbol(
+            lowercase(get(ENV, "SS_MOSEK_SOLVE_FORM", "free")),
+        )
+        order_method = Symbol(
+            lowercase(get(ENV, "SS_MOSEK_ORDER_METHOD", "free")),
+        )
+        basis_identification = Symbol(
+            lowercase(
+                get(
+                    ENV,
+                    "SS_MOSEK_BASIS_IDENTIFICATION",
+                    "default",
+                ),
+            ),
+        )
         progress("build low-level native Mosek primal")
         native_measurement = @timed(
             build_shastry_full_state_spin_isotypic_mosek_primal(
@@ -1183,6 +1198,9 @@ function spin_isotypic_main(arguments::Vector{String}=ARGS)
                 threads=threads,
                 time_limit_seconds=time_limit_seconds,
                 log_level=log_level,
+                solve_form=solve_form,
+                order_method=order_method,
+                basis_identification=basis_identification,
                 progress_callback=progress,
                 fingerprint_coefficients=
                     options.patch_level == 1 ||
@@ -1232,6 +1250,10 @@ function spin_isotypic_main(arguments::Vector{String}=ARGS)
                 expected_coefficient_map_sha256,
             "coefficient_regression_passed" =>
                 coefficient_regression_passed,
+            "requested_solve_form" => string(solve_form),
+            "requested_order_method" => string(order_method),
+            "basis_identification" =>
+                string(basis_identification),
         )
         metadata["reduced"]["spin_isotypic_moments"] =
             length(native_primal.moment_variables)
@@ -1244,6 +1266,8 @@ function spin_isotypic_main(arguments::Vector{String}=ARGS)
         write_checkpoint(checkpoint_path, metadata)
         progress(
             "optimize native Mosek primal; threads=$threads, " *
+            "solve_form=$solve_form, order_method=$order_method, " *
+            "basis_identification=$basis_identification, " *
             "time_limit=$(time_limit_seconds)s",
         )
         solve_measurement = @timed(
@@ -1304,6 +1328,10 @@ function spin_isotypic_main(arguments::Vector{String}=ARGS)
                 solve_result.maximum_equality_violation,
             "audit_tolerance" => audit_tolerance,
             "threads" => threads,
+            "requested_solve_form" => string(solve_form),
+            "requested_order_method" => string(order_method),
+            "basis_identification" =>
+                string(basis_identification),
             "time_limit_seconds" => time_limit_seconds,
         )
         write_checkpoint(checkpoint_path, metadata)

@@ -21,6 +21,56 @@ export ShastryFullStateSpinIsotypicMosekPrimal,
        build_shastry_full_state_spin_isotypic_mosek_primal,
        optimize_shastry_full_state_spin_isotypic_mosek_primal!
 
+function configure_native_primal_interior_point!(
+    task::Mosek.Task;
+    solve_form::Symbol=:free,
+    order_method::Symbol=:free,
+    basis_identification::Symbol=:default,
+)
+    solve_forms = Dict(
+        :free => Mosek.MSK_SOLVE_FREE,
+        :primal => Mosek.MSK_SOLVE_PRIMAL,
+        :dual => Mosek.MSK_SOLVE_DUAL,
+    )
+    order_methods = Dict(
+        :free => Mosek.MSK_ORDER_METHOD_FREE,
+        :appminloc => Mosek.MSK_ORDER_METHOD_APPMINLOC,
+        :try_graphpar => Mosek.MSK_ORDER_METHOD_TRY_GRAPHPAR,
+        :force_graphpar => Mosek.MSK_ORDER_METHOD_FORCE_GRAPHPAR,
+    )
+    haskey(solve_forms, solve_form) ||
+        throw(ArgumentError("unsupported Mosek solve form: $solve_form"))
+    haskey(order_methods, order_method) ||
+        throw(ArgumentError("unsupported Mosek order method: $order_method"))
+    basis_identification in (:default, :never, :always) ||
+        throw(
+            ArgumentError(
+                "unsupported Mosek basis identification: " *
+                string(basis_identification),
+            ),
+        )
+    Mosek.putintparam(
+        task,
+        Mosek.MSK_IPAR_INTPNT_SOLVE_FORM,
+        solve_forms[solve_form],
+    )
+    Mosek.putintparam(
+        task,
+        Mosek.MSK_IPAR_INTPNT_ORDER_METHOD,
+        order_methods[order_method],
+    )
+    if basis_identification != :default
+        Mosek.putintparam(
+            task,
+            Mosek.MSK_IPAR_INTPNT_BASIS,
+            basis_identification == :never ?
+            Mosek.MSK_BI_NEVER :
+            Mosek.MSK_BI_ALWAYS,
+        )
+    end
+    return nothing
+end
+
 struct ShastryFullStateSpinIsotypicMosekPrimal
     task::Mosek.Task
     moment_variables::Dict{MomentKey,Int32}
@@ -303,6 +353,9 @@ function build_shastry_full_state_spin_isotypic_mosek_primal(
     threads::Int=Threads.nthreads(),
     time_limit_seconds::Float64=43200.0,
     log_level::Int=1,
+    solve_form::Symbol=:free,
+    order_method::Symbol=:free,
+    basis_identification::Symbol=:default,
     progress_callback::Function=message -> nothing,
     fingerprint_coefficients::Bool=false,
     su2_rank4_reduction::Bool=false,
@@ -318,6 +371,12 @@ function build_shastry_full_state_spin_isotypic_mosek_primal(
     )
     Mosek.putintparam(task, Mosek.MSK_IPAR_NUM_THREADS, threads)
     Mosek.putintparam(task, Mosek.MSK_IPAR_LOG, log_level)
+    configure_native_primal_interior_point!(
+        task;
+        solve_form=solve_form,
+        order_method=order_method,
+        basis_identification=basis_identification,
+    )
     Mosek.putdouparam(
         task,
         Mosek.MSK_DPAR_OPTIMIZER_MAX_TIME,
