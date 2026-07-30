@@ -74,5 +74,5 @@ repeat this inventory at the same memory scale. Candidate directions are:
 - elimination or localization of globally coupled moment variables;
 - a certificate-oriented formulation with a smaller Newton system.
 
-High-memory execution remains useful as a diagnostic and possible fallback,
-but it is not an algorithmic resolution.
+The operational memory ceiling is approximately 114 GB. A viable next route
+must fit below it; larger-memory execution is not an available fallback.

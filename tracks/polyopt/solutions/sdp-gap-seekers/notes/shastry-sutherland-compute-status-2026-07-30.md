@@ -71,8 +71,9 @@ an incomplete solver route, not as a working `L=2` solution.
 
 Further progress requires an algorithmic reduction of the factorization graph:
 for example an exact component/chordal decomposition, fewer globally coupled
-moment variables, or a certificate-oriented formulation. A larger-memory run
-can measure the remaining requirement but does not replace this optimization.
+moment variables, or a certificate-oriented formulation. The operational
+memory ceiling is approximately 114 GB, so larger-memory fallback runs are not
+part of the viable plan.
 
 ## Submission boundary
 
