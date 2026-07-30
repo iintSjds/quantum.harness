@@ -35,29 +35,44 @@ opposite counts are both zero. The immutable runmeta SHA-256 is
 This authorizes the separate build to remove the three nontrivial-character
 `l=2` copies in each family/parity group.
 
-## Conditional reduced inventory
+## Verified reduced inventory
 
-If and only if the coefficient audit passes, the predicted exact inventory is:
+The separate full build reproduced the exact coefficient gate and emitted:
 
 - 26 PSD blocks: 20 positive and 6 gap blocks;
 - positive block dimensions
   `[485,485,440,440,490,460,490,460,490,460,336,335,290,290,315,310,315,310,315,310]`;
 - gap block dimensions `[6,3,6,3,6,3]`;
+- 343,761 moment variables;
+- 10,375,308 scalar coefficient terms;
 - 1,600,017 packed PSD entries;
-- maximum side 490.
+- maximum side 490;
+- coefficient-map SHA-256
+  `ddd3795eb3b15034f2208f90fc98056fb8c63109852393def93d69fd7e17df1b`.
 
-The exact moment count, scalar-term count, and coefficient hash must come from
-the separate deduplicated build; they are not inferred from this structural
-inventory.
+This is a 37.0% packed-entry reduction from the stabilizer-split model and is
+exactly equivalent to it.
 
-## Implementation state
+## Decision-solve outcome
 
-- Commit `b729697` adds strict build-only and solve runners. Both repeat the
-  full stabilizer and SO(3) coefficient gates. The solve also requires the
-  coefficient hash emitted by the separate build.
-- Strict deduplicated build-only job `118199609`, source commit `c817334`, was
-  submitted after the coefficient audit passed. It invokes no optimizer.
-- The earlier L=3 structural experiment used an invalid shortcut from
-  norm-ratio `1/2` to coefficient scale `1/2`. Commit `e253c34` reverted that
-  shortcut. Its L=3 size output is structural prediction only and cannot
-  authorize cone deletion or a solve.
+The native affine-PSD primal task completed all coefficient gates, reproduced
+the inventory and hash above, and reached solver presolve. It then exhausted a
+114,000-MiB memory budget before interior-point iteration zero.
+
+The deduplication is therefore valid but the current solve route is not yet
+tractable at this memory scale. Reducing packed storage alone did not reduce
+the maximum block side or the factorization fill sufficiently. The run
+provides neither feasibility nor infeasibility evidence.
+
+## Required next optimization
+
+A subsequent solver attempt must change the factorization problem rather than
+repeat this inventory at the same memory scale. Candidate directions are:
+
+- an exact component or chordal decomposition with a full coefficient
+  reconstruction gate;
+- elimination or localization of globally coupled moment variables;
+- a certificate-oriented formulation with a smaller Newton system.
+
+High-memory execution remains useful as a diagnostic and possible fallback,
+but it is not an algorithmic resolution.

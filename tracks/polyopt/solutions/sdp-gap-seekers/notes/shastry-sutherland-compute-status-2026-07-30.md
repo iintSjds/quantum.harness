@@ -55,22 +55,24 @@ and closes every proposed congruence exactly.
 
 ## Current stretch result
 
-The strengthened `L=2,d=2` formulation has been built far enough to identify
-the real bottleneck: sparse interior-point factorization fill, rather than the
-formal number of stored moments alone.
+The exact cone-deduplicated `L=2,d=2` model now builds reproducibly, and
+independent assemblies have the same complete coefficient fingerprint.
+However, the resulting native affine-PSD solve still exhausts a 114 GB memory
+budget immediately after presolve and before the first interior-point
+iteration.
 
-The exact cone-deduplicated model is now in full assembly and solve. The
-production path combines the exact reductions with direct native affine-PSD
-assembly and fill-reducing primal factorization.
+The 37% reduction in packed cone entries is therefore mathematically valid but
+not yet sufficient to make the `L=2,d=2` decision problem tractable. It leaves
+the maximum block side at 490 and does not reduce sparse KKT fill enough.
 
-Two outcomes would be decision-relevant:
+This failure gives no feasibility or bulk-gap conclusion. The current
+deduplicated implementation should be described as a verified reduction and
+an incomplete solver route, not as a working `L=2` solution.
 
-- a verified infeasibility result would constrain the candidate bulk gap and
-  materially strengthen the submission;
-- a verified feasible result would show that even the larger spatial window
-  remains too weak and would direct the next step toward `L=1,d=3`.
-
-Resource failure, timeout, or a solver error would remain inconclusive.
+Further progress requires an algorithmic reduction of the factorization graph:
+for example an exact component/chordal decomposition, fewer globally coupled
+moment variables, or a certificate-oriented formulation. A larger-memory run
+can measure the remaining requirement but does not replace this optimization.
 
 ## Submission boundary
 
@@ -81,9 +83,10 @@ The defensible result today is:
   independently checked;
 - exact `L=2,d=2` cone deduplication substantially reduces the stronger
   problem;
+- the current deduplicated solver route remains memory-intractable and needs
+  further factorization-level optimization;
 - no nonzero physical bulk-gap certificate has yet been obtained.
 
 The submission should lead with the finite-level physics conclusion and the
-general exact-reduction machinery. The `L=2,d=2` outcome should replace the
-stretch-result paragraph only after a solver result and its certificate checks
-are complete.
+general exact-reduction machinery. It must not present the current `L=2,d=2`
+route as solved.
